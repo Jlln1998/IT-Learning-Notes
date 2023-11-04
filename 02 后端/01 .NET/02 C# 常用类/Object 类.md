@@ -1,6 +1,4 @@
-## 5. C# 常用内置类
-
-### 5.1 Object 类
+# Object 类
 
 > 官方介绍：[Object类](https://learn.microsoft.com/zh-cn/dotnet/api/system.object?view=net-7.0)
 >
@@ -17,31 +15,3 @@ Object 类常用方法如下：
 | [Finalize](https://learn.microsoft.com/zh-cn/dotnet/api/system.object.finalize?view=net-7.0) | 在自动回收对象之前执行清理操作。           |
 | [GetHashCode](https://learn.microsoft.com/zh-cn/dotnet/api/system.object.gethashcode?view=net-7.0) | 生成与对象值对应的数字，以支持使用哈希表。 |
 | [GetType()](https://learn.microsoft.com/zh-cn/dotnet/api/system.object.gettype?view=net-7.0#system-object-gettype) | 获取当前实例的 Type，                      |
-
-### 5.2 String 字符串
-
-> 官方介绍：[字符串类型](https://learn.microsoft.com/zh-cn/dotnet/api/system.string?view=net-7.0)
->
-> 
-
-#### 5.2.1 字符串模板
-
-> 在字符串前使用 $ 符号，可直接引用作用域中的成员
-
-````C#
-string name = "张三";
-int age = 10;
-string introduce = $"姓名:{name},年龄：{age}";
-Console.WriteLine(introduce);
-````
-
-### 5.3 Random
-
-> 用于产生随机数
-
-````C#
-Random random = new Random();
-int number = random.Next(10);
-int number2 = random.Next(10,20);
-````
-
