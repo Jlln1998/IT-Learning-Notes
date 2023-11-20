@@ -38,7 +38,7 @@
 | float(n)     | 从 -1.79E + 308 到 1.79E + 308 的浮动精度数字数据。<br />参数 n 决定了数据的精度以及所占空间字节大小<br />n 取值为 1~24 时，会视为取值24，7 位小数，占用4 字节， <br />n 取值为 25~53 时，会视为取值53，15 位小数，占用 8 字节，<br />n 的默认值是 53。 | 4或8字节  |
 | real         | 相当于 float(24)，不常用。                                   | 4 字节    |
 | numeric(p,s) | 固定精度和比例的数字。允许从 -10^38 +1 到 10^38 -1 之间的数字。<br />p 参数指示可以存储的最大位数（小数点左侧和右侧）。p 必须是 1 到 38 之间的值。默认是 18。<br />s 参数指示小数点右侧存储的最大位数。s 必须是 0 到 p 之间的值。默认是 0。 | 受P值影响 |
-| decimal(p,s) | 和 numeric 相同。                                            | 受P值影响 |
+| decimal(p,s) | 和 numeric 相同，二者无本质区别，也无性能差异。              | 受P值影响 |
 
 > 注：大于 2,147,483,647 的整数常量将自动转换为 decimal 数据类型，而不是 bigint 数据类型。
 
@@ -82,6 +82,8 @@
 > 如果没有在数据定义或变量声明语句中指定 *n*，则默认长度为 1。
 >
 > 如果在使用 `CAST` 和 `CONVERT` 函数时未指定 *n*，则默认长度为 30。
+>
+> 如果实际赋值长度超过设定长度 n，则会发生截断，导致数据保存不完整。
 
 ### 3.2 ...(n) 与 ...(max)
 
@@ -93,41 +95,88 @@
 >
 > 因此，使用 `varchar(max)` 性能比 `varchar(n)` 更好，因为它减少了对行数据的读取次数，但是它需要更多的存储空间。
 
-### 3.3 char 与 nchar
+### 3.3 char 与 varchar
 
-**字符编码**
+> 下列性质也适用于 nchar 与 nvarchar。
 
-* 字符数据类型 char（大小固定）或 varchar（大小可变）：
+**char(n)**  
+
+> 定长字符串，无论实际存储的数据是多大，都占用 n 字节的空间。
+>
+> 当实际数据不足 n 字节时，系统会用空白符号填充。
+
+<img src="./assets/char类型填充.png" alt="char类型填充" style="zoom:50%;" />
+
+**varchar(n)** 
+
+> 变长字符串：占用的空间大小根据实际所存字符串而定。
+>
+> 当实际数据不足 n 字节时，数据占用空间为：（实际数据所占字节数 + 2）。系统多分配的两个字节分别用于存储字符串的长度信息 ①实际占用空间大小，②该数据定义的可存储最大字节数。
+>
+> 当实际数据等于 n 字节时，数据所占空间达到最大 n + 2。
+
+<img src="./assets/varchar类型无填充.png" alt="varchar类型无填充" style="zoom:50%;" />
+
+
+
+### 3.4 char 与 nchar
+
+**1、字符编码不同**
+
+* `char` 或 `varchar`：
 
     > 从 SQL Server 2019 (15.x) 起：
     >
-    > 使用 UTF-8 排序规则时，这些数据类型会存储 [Unicode](https://learn.microsoft.com/zh-cn/sql/relational-databases/collations/collation-and-unicode-support?view=sql-server-ver16#Unicode_Defn) 字符数据的整个范围，并使用 [UTF-8](https://www.wikipedia.org/wiki/UTF-8) 字符编码。 
+    > 使用 UTF-8 排序规则时，这些数据类型会存储 [Unicode](https://learn.microsoft.com/zh-cn/sql/relational-databases/collations/collation-and-unicode-support?view=sql-server-ver16#Unicode_Defn) 字符数据的整个范围，**使用 UTF-8 字符编码**。 
     >
     > 若指定了非 UTF-8 排序规则，则这些数据类型仅会存储该排序规则的相应代码页支持的字符子集。
 
-* 字符数据类型 nchar（大小固定）或 nvarchar（大小可变）：
+    **特点：**
+
+    > UTF-8 编码采用的是使用可变长度编码方式，每个字符的存储长度可以是1到4个字节，根据字符的不同而变化。
+    >
+    > **ASCII 字符占用1字节、汉字占用2字节**
+    >
+    > 对于英文多的内容处理效率高。
+
+* `nchar` 或 `nvarchar`：
 
     > 从 SQL Server 2012 (11.x) 起：
     >
-    > 使用启用了[补充字符 (SC)](https://learn.microsoft.com/zh-cn/sql/relational-databases/collations/collation-and-unicode-support?view=sql-server-ver16#Supplementary_Characters) 的排序规则时，这些数据类型会存储 [Unicode](https://learn.microsoft.com/zh-cn/sql/relational-databases/collations/collation-and-unicode-support?view=sql-server-ver16#Unicode_Defn) 字符数据的整个范围，并使用 [UTF-16](https://www.wikipedia.org/wiki/UTF-16) 字符编码。
+    > 使用启用了[补充字符 (SC)](https://learn.microsoft.com/zh-cn/sql/relational-databases/collations/collation-and-unicode-support?view=sql-server-ver16#Supplementary_Characters) 的排序规则时，这些数据类型会存储 [Unicode](https://learn.microsoft.com/zh-cn/sql/relational-databases/collations/collation-and-unicode-support?view=sql-server-ver16#Unicode_Defn) 字符数据的整个范围，**使用 UTF-16 字符编码**。
     >
     > 若指定了非 SC 排序规则，则这些数据类型仅会存储 [UCS-2](https://www.wikipedia.org/wiki/Universal_Coded_Character_Set#Encoding_forms) 字符编码支持的字符数据子集。
+    
+    **特点：**
+    
+    > UTF-16 使用定长编码方式，无论是ASCII 字符还是其他字符，**每个字符固定占用2个字节**。
+    >
+    > 对于中文多的内容处理效率高，占用空间会比UTF-8多一些。
 
+**2、使用语法不同**
 
+* `char(n)` 或 `varchar(n)`：
 
-### 3.4 使用建议
+    n 取值为1-8000，代表字节数。
+
+* `nchar` 或 `nvarchar`：
+
+    n 取值为1-4000，代表双字节数。
+
+所以使用 nchar 或者 nvarchar 时，可容纳的字符数基本等同于n。使用 cahr 或者 varchar 时，可容纳的字符数 < n 。
+
+### 3.5 使用建议
 
 > 1、char 与 nchar 建议：
 >
 > * 从 SQL Server 2019 (15.x) 开始，考虑使用已启用 UTF-8 的排序规则，以支持 Unicode 并最大程度地减少字符转换问题。
 > * 若使用以前版本的 SQL Server 数据库引擎，请考虑使用 Unicode **nchar** 或 **nvarchar** 数据类型，以最大程度地减少字符转换问题。
 >
-> 2、若使用 **char** 或 **varchar**，则建议：
+> 2、若使用 **char** 或 **varchar**（该建议也适用于 nchar 与 nvarchar），则建议：
 >
 > * 如果列数据项的大小一致，则使用 **char**。
 > * 如果列数据项的大小差异相当大，则使用 **varchar**。
 > * 如果列数据项大小相差很大，而且字符串长度可能超过 8,000 字节，请使用 **varchar(max)**。
-> * 也使用于（nchar 与 nvarchar）
 
 
 
@@ -151,14 +200,12 @@
 
 | 数据类型         | 描述                                                         | 存储 |
 | ---------------- | ------------------------------------------------------------ | ---- |
+| uniqueidentifier | 存储全局标识符 ( GUID )，一般用于设置成主键类型，然后通过newid() 方法生成主键。 |      |
 | xml              | 存储 XML 格式化数据。最多 2GB 。                             |      |
 | hierarchyid      | hierarchyid 数据类型用于存储层次结构数据，例如组织结构、分类结构等。它提供了一组方法和函数，用于方便地操作层次结构，如插入、删除、移动节点等。 |      |
 | rowversion       | 公开数据库中自动生成的唯一二进制数字的数据类型               |      |
 | cursor           | 存储对用于数据库操作的指针的引用，rowversion 通常用作给表行加版本戳的机制。 |      |
 | sql_variant      | 存储最多 8,000 字节不同数据类型的数据，除了 text、 ntext 以及 timestamp 。 |      |
 | table            | 存储结果集，供稍后处理。                                     |      |
-| smallmoey        | 货币数据                                                     |      |
-| money            | 货币数据                                                     |      |
-| uniqueidentifier | 存储全局标识符 ( GUID )。                                    |      |
 | geography        | 地理空间类型。geography 数据类型用于存储地理空间数据，如地球上的点、线、面等几何图形。它支持处理地理坐标系统的数据，例如经度和纬度。geography 数据类型提供一些方便的函数和方法，可以进行空间查询、计算距离、计算面积等操作。 |      |
 | geometry         | 几何空间类型。geometry 数据类型用于存储平面坐标系的几何图形，如二维的点、线、多边形等。与 geography 类似，geometry 数据类型也提供了函数和方法来进行空间查询和计算。 |      |

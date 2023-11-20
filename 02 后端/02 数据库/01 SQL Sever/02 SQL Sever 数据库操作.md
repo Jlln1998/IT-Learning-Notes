@@ -107,20 +107,33 @@ on primary -- 指定数据文件存储的文件组
 create database xxx;
 ````
 
-### 2.3 创建数据库次文件
-
-> 不常用
+### 2.3 创建文件组
 
 ````sql
-alter database 新建数据库1
-add file
+-- 为数据库创建文件组
+ALTER DATABASE 数据库 ADD FILEGROUP 文件组名
+GO
+
+-- 修改数据库默认的文件组，初始默认的文件组是PRIMARY
+ALTER DATABASE [数据库]
+MODIFY FILEGROUP 文件组名 DEFAULT
+GO
+````
+
+### 2.4 创建数据库次文件
+
+````sql
+ALTER DATABASE 数据库名
+ADD File
 (
-	Name = '新建数据库1_次文件',-- 逻辑名称
-	filename = 'E:\test\新建数据库1_次文件.ndf', -- 物理名称
+	Name = '数据库名_次文件',	-- 逻辑名称
+	filename = 'E:\test\数据库名_次文件.ndf', -- 物理名称
 	size=5mb, -- 文件初始大小
 	filegrowth = 4mb, -- 每次增长多少
 	maxsize =200mb -- 文件的最大值
 )
+TO FILEGROUP 文件组名	-- 该次数据文件在哪个文件组创建
+GO
 ````
 
 ## 3. 切换数据库
@@ -204,5 +217,11 @@ execute sp_detach_db 'xxx'
 
 ````sql
 exec sp_attach_db 'xxx','c:XXX\XXX\xx.mdf'
+````
+
+## 9. 数据库信息查询
+
+````sql
+SELECT @@VERSION  -- 查询数据库的版本信息
 ````
 
